@@ -35,7 +35,7 @@ impl<T> ApiClient<T> {
     ///
     /// # Examples
     /// ```
-    /// # use astra_api_client::ApiClient;
+    /// # use bc_api_client::ApiClient;
     /// # type MyApi = ();
     /// // Instead of passing a new client, it is recommended to clone an existing
     /// // reqwest::Client.
@@ -59,8 +59,8 @@ impl<T> ApiClient<T> {
     ///
     /// # Examples
     /// ```
-    /// # use astra_api_client::ApiClient;
-    /// # use astra_api_client::auth::Bearer;
+    /// # use bc_api_client::ApiClient;
+    /// # use bc_api_client::auth::Bearer;
     /// # type MyApi = ();
     /// let reqwest_client = reqwest::Client::new();
     /// let client = ApiClient::<MyApi>::new(reqwest_client, "example.com", ());
