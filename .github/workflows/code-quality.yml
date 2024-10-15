@@ -17,9 +17,9 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - name: linting with clippy
+      - name: Linting with clippy
         run: cargo clippy --tests --examples
-      - name: linting with clippy with all features enabled
+      - name: Linting with clippy with all features enabled
         run: cargo clippy --tests --examples --all-features
   fmt:
     name: rustfmt
@@ -31,19 +31,25 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      - name: enforce formatting
+      - name: Enforce formatting
         run: cargo fmt --check
   test:
     name: test
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
     services:
       postgres:
         image: postgres:14
         env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: run tests with all features enabled
+      - name: Run tests with all features enabled
         run: cargo test --release --all-features
