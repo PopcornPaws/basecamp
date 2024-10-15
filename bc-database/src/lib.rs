@@ -5,3 +5,8 @@
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
+
+#[cfg(test)]
+mod test {
+    use tokio as _;
+}
