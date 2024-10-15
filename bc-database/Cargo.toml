@@ -1,0 +1,16 @@
+[package]
+name = "bc-database"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+postgres = ["sqlx"]
+
+[dependencies]
+dotenv = { version = "0.15" }
+sqlx = { version = "0.7", features = ["migrate", "postgres", "runtime-tokio"], optional = true }
+tracing = { version = "0.1" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

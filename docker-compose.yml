@@ -1,0 +1,11 @@
+services:
+  postgres-db:
+    ports:
+      - 5432:5432
+    image: postgres
+    container_name: postgres_test
+    hostname: postgres_test
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_PORT=5432

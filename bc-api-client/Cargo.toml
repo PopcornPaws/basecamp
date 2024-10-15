@@ -1,0 +1,9 @@
+[package]
+name = "bc-api-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.12" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
