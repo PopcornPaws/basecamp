@@ -6,6 +6,33 @@ on:
     pull_request:
 
 jobs:
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: linting with clippy
+        run: cargo clippy --tests --examples
+      - name: linting with clippy with all features enabled
+        run: cargo clippy --tests --examples --all-features
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: enforce formatting
+        run: cargo fmt --check
   test:
     name: test
     runs-on: ubuntu-latest
@@ -20,33 +47,3 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: run tests with all features enabled
         run: cargo test --release --all-features
-
-  fmt:
-    name: rustfmt
-    runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: -Dwarnings
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: enforce formatting
-        run: cargo fmt --check
-
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-      RUSTFLAGS: -Dwarnings
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: linting with clippy
-        run: cargo clippy --tests --examples
-      - name: linting with clippy with all features enabled
-        run: cargo clippy --tests --examples --all-features
-    
-
