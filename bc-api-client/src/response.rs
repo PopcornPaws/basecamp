@@ -35,9 +35,12 @@ impl<R: DeserializeOwned> TryFrom<(StatusCode, String)> for Response<R> {
         // try to deserialize response body into the expected type
         } else if let Ok(body) = serde_json::from_str::<R>(&message) {
             Ok(Response { status, body })
-        // try to deserialize response body into the expected type by casting it to a valid json
-        // string
-        } else if let Ok(body) = serde_json::from_str::<R>(&format!("\"{message}\"")) {
+        // as a fallback, try to deserialize response body into a String by casting it to
+        // a valid json string first
+        // NOTE unwrap is fine, because we are always serializing a valid UTF-8 String type
+        } else if let Ok(body) =
+            serde_json::from_str::<R>(&serde_json::to_string(&message).unwrap())
+        {
             Ok(Response { status, body })
         } else {
             Err(Response {
@@ -79,6 +82,12 @@ mod test {
                 .unwrap();
         assert_eq!(response.status, StatusCode::ACCEPTED);
         assert_eq!(response.body, "hello world");
+
+        let input = "hello \nmy\" world";
+        let response =
+            Response::<String>::try_from((StatusCode::ACCEPTED, input.to_string())).unwrap();
+        assert_eq!(response.status, StatusCode::ACCEPTED);
+        assert_eq!(response.body, input);
     }
 
     #[test]
