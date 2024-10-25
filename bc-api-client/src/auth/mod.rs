@@ -1,5 +1,6 @@
 mod basic;
 mod bearer;
+mod headers;
 mod login;
 
 pub use basic::Basic;
