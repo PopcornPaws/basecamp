@@ -27,6 +27,12 @@ impl From<RequestBuilder> for Request {
     }
 }
 
+impl From<Request> for RequestBuilder {
+    fn from(request: Request) -> Self {
+        request.0
+    }
+}
+
 impl Request {
     /// Dispatches an API call and attempts to deserialize the response payload to a generic type
     /// `R` that is specified at compile time.
