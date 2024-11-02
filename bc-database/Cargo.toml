@@ -5,9 +5,11 @@ edition = "2021"
 
 [features]
 default = []
+record = ["bc-record-derive", "postgres"]
 postgres = ["dotenv", "sqlx", "tracing"]
 
 [dependencies]
+bc-record-derive = { path = "./bc-record-derive", optional = true }
 dotenv = { version = "0.15", optional = true }
 sqlx = { version = "0.7", features = ["migrate", "postgres", "runtime-tokio"], optional = true }
 tracing = { version = "0.1", optional = true }
