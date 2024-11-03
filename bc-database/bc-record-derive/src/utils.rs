@@ -7,17 +7,6 @@ pub fn should_flatten(attributes: &[Attribute]) -> bool {
     extract_attribute_value(attributes, "record", "flatten").is_some()
 }
 
-//pub fn has_attribute(meta: Meta, ident: &str) -> bool {
-//    if let Meta::List(meta_list) = meta {
-//        for nested_meta in meta_list.nested {
-//            if let NestedMeta::Meta(Meta::Path(path)) = nested_meta {
-//                return path.is_ident(ident);
-//            }
-//        }
-//    }
-//    false
-//}
-
 pub fn first_path_segment(type_path: &TypePath) -> Option<&PathSegment> {
     type_path.path.segments.first()
 }
