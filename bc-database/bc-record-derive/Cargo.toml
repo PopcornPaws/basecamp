@@ -3,10 +3,13 @@ name = "bc-record-derive"
 edition = "2021"
 version = "0.1.0"
 
+[lib]
+proc-macro = true
+
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
-syn = "1"
+syn = "2"
 
-[lib]
-proc-macro = true
+[dev-dependencies]
+syn = { version = "2", features = ["full"] }
