@@ -118,10 +118,10 @@ mod test {
         use sqlx::Row;
 
         let mut config = Config::from_env();
-        config.options = config.options.with_database("with_migration");
+        config.options = config.options.with_database("batch_insert");
         let pool = config.connect_with_migration().await.unwrap();
-        let batch = BatchTestRecord::from(dummy_records().to_vec());
 
+        let batch = BatchTestRecord::from(dummy_records().to_vec());
         batch.insert(&pool).await.unwrap();
 
         let count = sqlx::query("SELECT COUNT (*) FROM test")
