@@ -96,18 +96,22 @@ impl Builder {
                     records.into_iter().for_each(|record| self.push(record));
                 }
 
-                pub fn raw_insert_query() -> &'static str {
-                    use sqlx::TypeInfo;
-                    let values = vec![
-                        #(<#non_flattened_types as sqlx::Type<sqlx::Postgres>>::type_info().name().to_string(),)*
-                    ];
-                    let values_string = values
-                        .into_iter()
-                        .enumerate()
-                        .map(|(i, val)| format!("${}::{}[]", i + 1, val))
-                        .collect::<Vec<String>>()
-                        .join(",");
-                    Box::leak(Box::new(format!("INSERT INTO {} ({}) SELECT * FROM UNNEST({})",#table_name, #non_flattened_names_string, values_string)))
+                pub fn raw_insert_query() -> &'static String {
+                    use std::sync::LazyLock;
+                    static QUERY: LazyLock<String> = LazyLock::new(|| {
+                        use sqlx::TypeInfo;
+                        let values = vec![
+                            #(<#non_flattened_types as sqlx::Type<sqlx::Postgres>>::type_info().name().to_string(),)*
+                        ];
+                        let values_string = values
+                            .into_iter()
+                            .enumerate()
+                            .map(|(i, val)| format!("${}::{}[]", i + 1, val))
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        format!("INSERT INTO {} ({}) SELECT * FROM UNNEST({})",#table_name, #non_flattened_names_string, values_string)
+                    });
+                    &*QUERY
                 }
 
                 pub fn insert_query<'a>(&'a self) -> sqlx::query::Query<'a, sqlx::Postgres, sqlx::postgres::PgArguments> {

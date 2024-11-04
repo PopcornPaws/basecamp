@@ -111,8 +111,9 @@ mod test {
         assert_eq!(batch.quux.baz, &[true, false, true]);
     }
 
-    #[tokio::test]
-    async fn insert_batch() {
-        let pool =
-    }
+    // TODO
+    //#[tokio::test]
+    //async fn insert_batch() {
+    //    let pool =
+    //}
 }

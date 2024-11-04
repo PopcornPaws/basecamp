@@ -80,7 +80,7 @@ mod test {
         };
 
         let extracted = extract_attribute_value(&input.attrs, "foo", "bar");
-        assert_eq!(extracted, Some("".into()));
+        assert_eq!(extracted, Some(String::new()));
 
         let extracted = extract_attribute_value(&input.attrs, "baz", "bar");
         assert!(extracted.is_none());
