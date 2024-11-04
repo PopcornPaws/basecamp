@@ -1,7 +1,5 @@
 use quote::ToTokens;
-use syn::{
-    Attribute, Expr, GenericArgument, Ident, PathArguments, PathSegment, Type, TypePath,
-};
+use syn::{Attribute, Expr, GenericArgument, Ident, PathArguments, PathSegment, Type, TypePath};
 
 pub fn should_flatten(attributes: &[Attribute]) -> bool {
     extract_attribute_value(attributes, "record", "flatten").is_some()

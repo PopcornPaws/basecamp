@@ -1,5 +1,6 @@
 pub use bc_record_derive::Record;
 
+// TODO handle one-to-many relationships with flattened data properly
 pub trait Record: Sized {
     type Batch: From<Vec<Self>>;
 }
@@ -11,7 +12,7 @@ mod test {
     #[derive(Clone, Debug, Record)]
     #[record(table = test)]
     struct TestRecord {
-        id: i8,
+        id: i16,
         foo: String,
         bar: i64,
         baz: Vec<u8>,
@@ -89,7 +90,7 @@ mod test {
 
         assert_eq!(
             BatchTestRecord::raw_insert_query(),
-            "INSERT INTO test (id,foo,bar,baz) SELECT * FROM UNNEST($1::\"CHAR\"[],$2::TEXT[],$3::INT8[],$4::BYTEA[])"
+            "INSERT INTO test (id,foo,bar,baz) SELECT * FROM UNNEST($1::INT2[],$2::TEXT[],$3::INT8[],$4::BYTEA[])"
         );
         assert_eq!(
             BatchInnerRecord::raw_insert_query(),
@@ -111,9 +112,32 @@ mod test {
         assert_eq!(batch.quux.baz, &[true, false, true]);
     }
 
-    // TODO
-    //#[tokio::test]
-    //async fn insert_batch() {
-    //    let pool =
-    //}
+    #[tokio::test]
+    async fn insert_batch() {
+        use crate::postgres::Config;
+        use sqlx::Row;
+
+        let mut config = Config::from_env();
+        config.options = config.options.with_database("with_migration");
+        let pool = config.connect_with_migration().await.unwrap();
+        let batch = BatchTestRecord::from(dummy_records().to_vec());
+
+        batch.insert(&pool).await.unwrap();
+
+        let count = sqlx::query("SELECT COUNT (*) FROM test")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count.get::<i64, &str>("count"), 3);
+        let count = sqlx::query("SELECT COUNT (*) FROM inner_test")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count.get::<i64, &str>("count"), 3);
+
+        sqlx::query("TRUNCATE TABLE test, inner_test")
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
 }

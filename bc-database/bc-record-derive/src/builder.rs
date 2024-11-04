@@ -101,7 +101,7 @@ impl Builder {
                     static QUERY: LazyLock<String> = LazyLock::new(|| {
                         use sqlx::TypeInfo;
                         let values = vec![
-                            #(<#non_flattened_types as sqlx::Type<sqlx::Postgres>>::type_info().name().to_string(),)*
+                            #(<#non_flattened_types as sqlx::Type<sqlx::Postgres>>::type_info().name().to_owned(),)*
                         ];
                         let values_string = values
                             .into_iter()

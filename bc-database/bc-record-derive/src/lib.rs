@@ -43,14 +43,15 @@ pub fn impl_record(input: TokenStream) -> TokenStream {
     let table_name = extract_attribute_value(&input.attrs, "record", "table").unwrap_or_default();
     assert!(!table_name.is_empty(), "missing table name\nadd '#[table = \"my_example_table_name\"]' as an attribute to the struct");
 
-    let builder = fields
-        .named
-        .iter()
-        .map(Field::from)
-        .fold(Builder::new(), |mut builder, field| {
-            builder.push(&field);
-            builder
-        });
+    let builder =
+        fields
+            .named
+            .iter()
+            .map(Field::from)
+            .fold(Builder::new(), |mut builder, field| {
+                builder.push(&field);
+                builder
+            });
 
     builder.expand(&struct_type, &table_name).into()
 }
