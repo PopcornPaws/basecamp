@@ -2,39 +2,6 @@ use crate::response::{Response, Result};
 use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
-/*
-use std::ops::{Deref, DerefMut};
-
-#[derive(Debug)]
-pub struct Request(RequestBuilder);
-
-impl Deref for Request {
-    type Target = RequestBuilder;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Request {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl From<RequestBuilder> for Request {
-    fn from(builder: RequestBuilder) -> Self {
-        Self(builder)
-    }
-}
-
-impl From<Request> for RequestBuilder {
-    fn from(request: Request) -> Self {
-        request.into_inner()
-    }
-}
-*/
-
 #[allow(async_fn_in_trait)]
 pub trait Request {
     /// Dispatches an API call and attempts to deserialize the response payload to a generic type
