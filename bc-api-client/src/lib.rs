@@ -9,12 +9,47 @@ pub mod request;
 pub mod response;
 
 use auth::Auth;
-use request::Request;
 
-use reqwest::{Client, Method};
+pub use reqwest;
+use reqwest::{Client, Method, RequestBuilder};
 
 use std::marker::PhantomData;
 use std::sync::Arc;
+
+#[must_use]
+pub struct ApiClientBuilder<'a> {
+    client: Client,
+    base_url: &'a str,
+    auth: Box<dyn Auth + Send + Sync>,
+}
+
+impl<'a> ApiClientBuilder<'a> {
+    pub fn new(base_url: &'a str) -> Self {
+        Self {
+            client: Client::new(),
+            base_url,
+            auth: Box::new(()),
+        }
+    }
+
+    pub fn with_auth<A: Auth + Send + Sync + 'static>(self, auth: A) -> Self {
+        Self {
+            client: self.client,
+            base_url: self.base_url,
+            auth: Box::new(auth),
+        }
+    }
+
+    #[must_use]
+    pub fn build<T>(self) -> ApiClient<T> {
+        ApiClient {
+            client: self.client,
+            base_url: Arc::from(self.base_url),
+            auth: Arc::from(self.auth),
+            _api: PhantomData,
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct ApiClient<T> {
@@ -65,10 +100,10 @@ impl<T> ApiClient<T> {
     /// let reqwest_client = reqwest::Client::new();
     /// let client = ApiClient::<MyApi>::new(reqwest_client, "example.com", ());
     /// let auth = Bearer::new("my-bearer-token");
-    /// let auth_client = client.with_auth(auth);
+    /// let auth_client = client.with_auth_cloned(auth);
     /// ```
     #[must_use]
-    pub fn with_auth<A: Auth + Send + Sync + 'static>(&self, auth: A) -> Self {
+    pub fn with_auth_cloned<A: Auth + Send + Sync + 'static>(&self, auth: A) -> Self {
         Self {
             client: self.client.clone(), // cheap due to Arc (and recommended)
             base_url: Arc::clone(&self.base_url),
@@ -77,40 +112,33 @@ impl<T> ApiClient<T> {
         }
     }
 
-    #[must_use]
-    pub fn request(self, method: Method, route: &str) -> Request {
+    pub fn request(self, method: Method, route: &str) -> RequestBuilder {
         let url = format!("{}{}", self.base_url, route);
         let request = self.client.request(method, url);
-        self.auth.attach(request).into()
+        self.auth.attach(request)
     }
 
-    #[must_use]
-    pub fn get(self, route: &str) -> Request {
+    pub fn get(self, route: &str) -> RequestBuilder {
         self.request(Method::GET, route)
     }
 
-    #[must_use]
-    pub fn post(self, route: &str) -> Request {
+    pub fn post(self, route: &str) -> RequestBuilder {
         self.request(Method::POST, route)
     }
 
-    #[must_use]
-    pub fn put(self, route: &str) -> Request {
+    pub fn put(self, route: &str) -> RequestBuilder {
         self.request(Method::PUT, route)
     }
 
-    #[must_use]
-    pub fn patch(self, route: &str) -> Request {
+    pub fn patch(self, route: &str) -> RequestBuilder {
         self.request(Method::PATCH, route)
     }
 
-    #[must_use]
-    pub fn delete(self, route: &str) -> Request {
+    pub fn delete(self, route: &str) -> RequestBuilder {
         self.request(Method::DELETE, route)
     }
 
-    #[must_use]
-    pub fn head(self, route: &str) -> Request {
+    pub fn head(self, route: &str) -> RequestBuilder {
         self.request(Method::HEAD, route)
     }
 }
