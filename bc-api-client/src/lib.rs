@@ -9,10 +9,9 @@ pub mod request;
 pub mod response;
 
 use auth::Auth;
-use request::Request;
 
 pub use reqwest;
-use reqwest::{Client, Method};
+use reqwest::{Client, Method, RequestBuilder};
 
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -113,40 +112,33 @@ impl<T> ApiClient<T> {
         }
     }
 
-    #[must_use]
-    pub fn request(self, method: Method, route: &str) -> Request {
+    pub fn request(self, method: Method, route: &str) -> RequestBuilder {
         let url = format!("{}{}", self.base_url, route);
         let request = self.client.request(method, url);
-        self.auth.attach(request).into()
+        self.auth.attach(request)
     }
 
-    #[must_use]
-    pub fn get(self, route: &str) -> Request {
+    pub fn get(self, route: &str) -> RequestBuilder {
         self.request(Method::GET, route)
     }
 
-    #[must_use]
-    pub fn post(self, route: &str) -> Request {
+    pub fn post(self, route: &str) -> RequestBuilder {
         self.request(Method::POST, route)
     }
 
-    #[must_use]
-    pub fn put(self, route: &str) -> Request {
+    pub fn put(self, route: &str) -> RequestBuilder {
         self.request(Method::PUT, route)
     }
 
-    #[must_use]
-    pub fn patch(self, route: &str) -> Request {
+    pub fn patch(self, route: &str) -> RequestBuilder {
         self.request(Method::PATCH, route)
     }
 
-    #[must_use]
-    pub fn delete(self, route: &str) -> Request {
+    pub fn delete(self, route: &str) -> RequestBuilder {
         self.request(Method::DELETE, route)
     }
 
-    #[must_use]
-    pub fn head(self, route: &str) -> Request {
+    pub fn head(self, route: &str) -> RequestBuilder {
         self.request(Method::HEAD, route)
     }
 }

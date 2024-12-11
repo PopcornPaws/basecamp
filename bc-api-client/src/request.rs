@@ -2,6 +2,7 @@ use crate::response::{Response, Result};
 use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
+/*
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
@@ -32,8 +33,10 @@ impl From<Request> for RequestBuilder {
         request.into_inner()
     }
 }
+*/
 
-impl Request {
+#[allow(async_fn_in_trait)]
+pub trait Request {
     /// Dispatches an API call and attempts to deserialize the response payload to a generic type
     /// `R` that is specified at compile time.
     ///
@@ -43,8 +46,12 @@ impl Request {
     /// # Errors
     ///
     /// Throws an error if the request fails to send or if the response cannot be processed.
-    pub async fn dispatch<R: DeserializeOwned>(self) -> Result<R> {
-        let response = self.0.send().await.map_err(|e| Response {
+    async fn dispatch<R: DeserializeOwned>(self) -> Result<R>;
+}
+
+impl Request for RequestBuilder {
+    async fn dispatch<R: DeserializeOwned>(self) -> Result<R> {
+        let response = self.send().await.map_err(|e| Response {
             status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
             body: e.to_string(),
         })?;
@@ -54,9 +61,5 @@ impl Request {
             body: e.to_string(),
         })?;
         (status, message).try_into()
-    }
-
-    pub fn into_inner(self) -> RequestBuilder {
-        self.0
     }
 }
