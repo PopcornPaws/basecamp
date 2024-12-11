@@ -11,10 +11,46 @@ pub mod response;
 use auth::Auth;
 use request::Request;
 
+pub use reqwest;
 use reqwest::{Client, Method};
 
 use std::marker::PhantomData;
 use std::sync::Arc;
+
+#[must_use]
+pub struct ApiClientBuilder<'a> {
+    client: Client,
+    base_url: &'a str,
+    auth: Box<dyn Auth + Send + Sync>,
+}
+
+impl<'a> ApiClientBuilder<'a> {
+    pub fn new(base_url: &'a str) -> Self {
+        Self {
+            client: Client::new(),
+            base_url,
+            auth: Box::new(()),
+        }
+    }
+
+    pub fn with_auth<A: Auth + Send + Sync + 'static>(self, auth: A) -> Self {
+        Self {
+            client: self.client,
+            base_url: self.base_url,
+            auth: Box::new(auth),
+        }
+    }
+
+    #[must_use]
+    pub fn build<T>(self) -> ApiClient<T> {
+        ApiClient {
+            client: self.client,
+            base_url: Arc::from(self.base_url),
+            auth: Arc::from(self.auth),
+            _api: PhantomData,
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct ApiClient<T> {
@@ -65,10 +101,10 @@ impl<T> ApiClient<T> {
     /// let reqwest_client = reqwest::Client::new();
     /// let client = ApiClient::<MyApi>::new(reqwest_client, "example.com", ());
     /// let auth = Bearer::new("my-bearer-token");
-    /// let auth_client = client.with_auth(auth);
+    /// let auth_client = client.with_auth_cloned(auth);
     /// ```
     #[must_use]
-    pub fn with_auth<A: Auth + Send + Sync + 'static>(&self, auth: A) -> Self {
+    pub fn with_auth_cloned<A: Auth + Send + Sync + 'static>(&self, auth: A) -> Self {
         Self {
             client: self.client.clone(), // cheap due to Arc (and recommended)
             base_url: Arc::clone(&self.base_url),

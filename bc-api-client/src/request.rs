@@ -29,7 +29,7 @@ impl From<RequestBuilder> for Request {
 
 impl From<Request> for RequestBuilder {
     fn from(request: Request) -> Self {
-        request.0
+        request.into_inner()
     }
 }
 
@@ -54,5 +54,9 @@ impl Request {
             body: e.to_string(),
         })?;
         (status, message).try_into()
+    }
+
+    pub fn into_inner(self) -> RequestBuilder {
+        self.0
     }
 }
