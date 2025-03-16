@@ -1,6 +1,6 @@
 use reqwest::StatusCode;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 
 pub type Result<T> = std::result::Result<Response<T>, Response<String>>;
 
