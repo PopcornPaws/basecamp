@@ -40,11 +40,11 @@ impl Config {
     pub fn from_env() -> Self {
         let mut config = Self::default();
 
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         config.options = Options::from_env();
 
-        if let Ok(migrations) = dotenv::var("DB_MIGRATIONS_PATH") {
+        if let Ok(migrations) = dotenvy::var("DB_MIGRATIONS_PATH") {
             config.migrations_path = migrations;
         }
 

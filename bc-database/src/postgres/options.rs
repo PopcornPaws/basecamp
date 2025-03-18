@@ -40,40 +40,40 @@ impl Options {
     pub fn from_env() -> Self {
         let mut opts = Self::default();
 
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
         // try to parse the whole database url if present
-        if let Ok(url) = dotenv::var("DATABASE_URL") {
+        if let Ok(url) = dotenvy::var("DATABASE_URL") {
             opts.connect = url.parse().expect("invalid database url");
         } else {
-            if let Ok(port) = dotenv::var("DB_PORT") {
+            if let Ok(port) = dotenvy::var("DB_PORT") {
                 opts.connect = opts.connect.port(port.parse().unwrap());
             }
-            if let Ok(host) = dotenv::var("DB_HOST") {
+            if let Ok(host) = dotenvy::var("DB_HOST") {
                 opts.connect = opts.connect.host(&host);
             }
-            if let Ok(name) = dotenv::var("DB_NAME") {
+            if let Ok(name) = dotenvy::var("DB_NAME") {
                 opts.connect = opts.connect.database(&name);
             }
-            if let Ok(username) = dotenv::var("DB_USERNAME") {
+            if let Ok(username) = dotenvy::var("DB_USERNAME") {
                 opts.connect = opts.connect.username(&username);
             }
-            if let Ok(password) = dotenv::var("DB_PASSWORD") {
+            if let Ok(password) = dotenvy::var("DB_PASSWORD") {
                 opts.connect = opts.connect.password(&password);
             }
         }
-        if let Ok(s) = dotenv::var("DB_REQUIRE_SSL") {
+        if let Ok(s) = dotenvy::var("DB_REQUIRE_SSL") {
             if s.parse().unwrap() {
                 opts.connect = opts.connect.ssl_mode(PgSslMode::Require);
             }
         }
-        if let Ok(log_level) = dotenv::var("DB_LOG_LEVEL") {
+        if let Ok(log_level) = dotenvy::var("DB_LOG_LEVEL") {
             opts.connect = opts.connect.log_statements(log_level.parse().unwrap());
         }
-        if let Ok(seconds) = dotenv::var("DB_ACQUIRE_TIMEOUT") {
+        if let Ok(seconds) = dotenvy::var("DB_ACQUIRE_TIMEOUT") {
             let duration = Duration::from_secs(seconds.parse().unwrap());
             opts.pool = opts.pool.acquire_timeout(duration);
         }
-        if let Ok(seconds) = dotenv::var("DB_IDLE_TIMEOUT") {
+        if let Ok(seconds) = dotenvy::var("DB_IDLE_TIMEOUT") {
             let duration = Duration::from_secs(seconds.parse().unwrap());
             opts.pool = opts.pool.idle_timeout(duration);
         }
