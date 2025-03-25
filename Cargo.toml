@@ -4,4 +4,5 @@ members = [
     "bc-api-client",
     "bc-database",
     "bc-hash",
+    "bc-utils",
 ]
