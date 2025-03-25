@@ -1,0 +1,11 @@
+[package]
+name = "bc-utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bc-utils-derive = { path = "./bc-utils-derive" }
+
+[dev-dependencies]
+serde = { version = "1" }
+serde_json = { version = "1" }
