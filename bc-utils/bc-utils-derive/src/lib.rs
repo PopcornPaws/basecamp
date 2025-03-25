@@ -4,7 +4,7 @@
 #![warn(unused_crate_dependencies)]
 
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(SerdeAsString)]
 pub fn derive_serde_as_string(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
