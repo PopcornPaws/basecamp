@@ -8,8 +8,35 @@ pub use bc_utils_derive::SerdeAsString;
 /// `FromStr`.
 pub trait SerdeAsString: std::str::FromStr + std::fmt::Display {}
 
+/// Fills an URL path with input values by matching the respective input keys to patterns in the URL
+/// string.
+///
+/// The input keys (variable names) must match the key in the path. Furthermore, the key's type must
+/// implement `ToString`.
+///
+/// # Examples
+///
+/// ```
+/// # use bc_utils::fill_path;
+/// // no change, no input pattern present
+/// assert_eq!(fill_path!(":{}", "/v1/id"), "/v1/id");
+///
+/// let my_id = 123;
+/// // 'my_id' replaced with its stringified value
+/// assert_eq!(fill_path!(":{}", "/v1/id/:my_id", my_id), "/v1/id/123");
+///
+/// let my_id = 123;
+/// let your_id = 777;
+/// let their_id = 999;
+/// // all ids replaced with their stringified value
+/// // note the different formatting option
+/// assert_eq!(
+///     fill_path!("<{}>", "/v1/id/<my_id>/range/<your_id>:<their_id>", my_id, your_id, their_id),
+///     "/v1/id/123/range/777:999"
+/// );
+/// ```
 #[macro_export]
-macro_rules! url {
+macro_rules! fill_path {
     ($pattern:literal, $path:expr $(, $key:ident)*) => {
         {
             #[allow(unused_mut)]
@@ -23,56 +50,37 @@ macro_rules! url {
     };
 }
 
-// NOTE this is actix-web specific
+/// Fills an URL with values matching `{}` patterns within the original string.
+///
+/// URLs of the form `/foo/{bar}/baz/{quux}` are used by `actix-web` and `axum ^0.8` web frameworks
+/// to match input routes.
+///
+/// # Examples
+///
+/// ```
+/// # use bc_utils::path;
+/// let simple = "/v1/id";
+/// let complex = "/hello/{a}/bello/{b}/{c}:{d}/asd";
+/// let a = 1234u16;
+/// let b = "yello";
+/// let c = 111u64;
+/// let d = 222u64;
+/// assert_eq!(path!(simple), "/v1/id");
+/// assert_eq!(
+///     path!(complex, a, b, c, d),
+///     "/hello/1234/bello/yello/111:222/asd"
+/// );
+///
+/// ```
 #[macro_export]
-macro_rules! actix_url {
+macro_rules! path {
     ($path:expr $(, $key:ident)*) => {
-        $crate::url!("{{{}}}", $path $(, $key)*)
-    };
-}
-
-// NOTE this is axum specific
-#[macro_export]
-macro_rules! axum_url {
-    ($path:expr $(, $key:ident)*) => {
-        $crate::url!(":{}", $path $(, $key)*)
+        $crate::fill_path!("{{{}}}", $path $(, $key)*)
     };
 }
 
 #[cfg(test)]
 mod test {
-    mod url {
-        #[test]
-        fn actix() {
-            let simple = "/v1/id";
-            let complex = "/hello/{a}/bello/{b}/{c}:{d}/asd";
-            let a = 1234u16;
-            let b = "yello";
-            let c = 111u64;
-            let d = 222u64;
-            assert_eq!(actix_url!(simple), "/v1/id");
-            assert_eq!(
-                actix_url!(complex, a, b, c, d),
-                "/hello/1234/bello/yello/111:222/asd"
-            );
-        }
-
-        #[test]
-        fn axum() {
-            let simple = "/v1/id";
-            let complex = "/hello/:a/bello/:b/:c::d/asd";
-            let a = 1234u16;
-            let b = "yello";
-            let c = 111u64;
-            let d = 222u64;
-            assert_eq!(axum_url!(simple), "/v1/id");
-            assert_eq!(
-                axum_url!(complex, a, b, c, d),
-                "/hello/1234/bello/yello/111:222/asd"
-            );
-        }
-    }
-
     mod serde_as_string_derive {
         use crate::SerdeAsString;
         use std::str::FromStr;
