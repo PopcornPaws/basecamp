@@ -1,33 +1,39 @@
 use reqwest::StatusCode;
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 
-pub type Result<T> = std::result::Result<Response<T>, Response<String>>;
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct GenericError {
-    #[serde(alias = "msg")]
-    pub message: String,
-}
-
 #[derive(Clone, Debug)]
-pub struct Response<R> {
+pub struct Response {
     pub status: StatusCode,
-    pub body: R,
+    pub body: String,
 }
 
+impl Response {
+    pub fn new(status: StatusCode, body: String) -> Self {
+        Self { status, body }
+    }
+    /// Attempts to deserialize the body string as json.
+    ///
+    /// # Errors
+    ///
+    /// Throws an error if the body cannot be deserialized.
+    pub fn json<T: DeserializeOwned>(&self) -> Result<T, serde_json::Error> {
+        let body = if self.body.is_empty() {
+            "\"null\""
+        } else {
+            self.body.as_str()
+        };
+
+        serde_json::from_str(body)
+    }
+}
+
+/*
 impl<R: DeserializeOwned> TryFrom<(StatusCode, String)> for Response<R> {
     type Error = Response<String>;
     fn try_from((status, mut message): (StatusCode, String)) -> Result<R> {
         // create valid json from empty response by returning 'null'
-        if message.is_empty() {
-            message.push_str("null");
-        }
         // check if returned status is error
         if status.is_client_error() || status.is_server_error() {
-            if let Ok(error) = serde_json::from_str::<GenericError>(&message) {
-                message = error.message;
-            }
             Err(Response {
                 status,
                 body: message,
@@ -44,12 +50,13 @@ impl<R: DeserializeOwned> TryFrom<(StatusCode, String)> for Response<R> {
             Ok(Response { status, body })
         } else {
             Err(Response {
-                status: StatusCode::BAD_REQUEST,
+                status,
                 body: message,
             })
         }
     }
 }
+*/
 
 #[cfg(test)]
 mod test {
@@ -65,8 +72,8 @@ mod test {
 
     #[test]
     fn process_empty() {
-        let response = Response::<()>::try_from((StatusCode::OK, String::new())).unwrap();
-        assert_eq!(response.status, StatusCode::OK);
+        let response = Response::new(StatusCode::OK, String::new());
+        assert!(response.
     }
 
     #[test]

@@ -7,6 +7,9 @@
 pub mod auth;
 pub mod request;
 pub mod response;
+mod error;
+
+pub use error::Error;
 
 use auth::Auth;
 

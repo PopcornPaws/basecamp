@@ -1,32 +1,25 @@
-use crate::response::{Response, Result};
-use reqwest::{RequestBuilder, StatusCode};
+use crate::response::Response;
+use crate::Error;
+use reqwest::RequestBuilder;
 use serde::de::DeserializeOwned;
 
 #[allow(async_fn_in_trait)]
 pub trait Request {
-    /// Dispatches an API call and attempts to deserialize the response payload to a generic type
-    /// `R` that is specified at compile time.
-    ///
-    /// Returns an error if the http request fails or the returned response body cannot be
-    /// deserialized into the expected type.
+    /// Dispatches an API call and extracts the status and response as string.
     ///
     /// # Errors
     ///
     /// Throws an error if the request fails to send or if the response cannot be processed.
-    async fn dispatch<R: DeserializeOwned>(self) -> Result<R>;
+    async fn dispatch<R: DeserializeOwned>(self) -> Result<Response, Error>;
 }
 
 impl Request for RequestBuilder {
-    async fn dispatch<R: DeserializeOwned>(self) -> Result<R> {
-        let response = self.send().await.map_err(|e| Response {
-            status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
-            body: e.to_string(),
-        })?;
-        let status = response.status();
-        let message = response.text().await.map_err(|e| Response {
-            status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
-            body: e.to_string(),
-        })?;
-        (status, message).try_into()
+    async fn dispatch<R: DeserializeOwned>(self) -> Result<Response, Error> {
+        let response = self.send().await?;
+
+        Ok(Response {
+            status: response.status(),
+            body: response.text().await?,
+        })
     }
 }
