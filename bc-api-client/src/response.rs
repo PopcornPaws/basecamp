@@ -36,9 +36,13 @@ pub struct Response<R> {
     pub body: R,
 }
 
-impl<R: DeserializeOwned> TryFrom<reqwest::Response> for Response<R> {
-    type Error = Response<GenericError>;
-    fn try_from(response: reqwest::Response) -> ApiResult<R> {
+impl<R: DeserializeOwned> Response<R> {
+    /// Attempts to deserialize the body of a [`reqwest::Response`] into the expected type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the response status is error or if deserialization fails.
+    pub async fn decode(response: reqwest::Response) -> ApiResult<R> {
         let status = response.status();
         let headers = response
             .headers()
@@ -51,9 +55,17 @@ impl<R: DeserializeOwned> TryFrom<reqwest::Response> for Response<R> {
             })
             .collect();
 
-        let mut message: String =
-            futures::executor::block_on(async move { response.text().await.unwrap_or_default() });
+        let message: String = response.text().await.unwrap_or_default();
 
+        Self::try_from((status, headers, message))
+    }
+}
+
+impl<R: DeserializeOwned> TryFrom<(StatusCode, HashMap<String, String>, String)> for Response<R> {
+    type Error = Response<GenericError>;
+    fn try_from(
+        (status, headers, mut message): (StatusCode, HashMap<String, String>, String),
+    ) -> ApiResult<R> {
         if message.is_empty() {
             message.push_str("null");
         }
@@ -132,55 +144,55 @@ mod test {
         }
     }
 
-    #[test]
-    fn process_empty() {
+    #[tokio::test]
+    async fn process_empty() {
         let test = TestResponse::new(StatusCode::OK, json!(())).into_inner();
-        let response = Response::<()>::try_from(test).unwrap();
+        let response = Response::<()>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::OK);
         assert_eq!(response.headers.get("foo").unwrap(), "bar");
     }
 
-    #[test]
-    fn process_string() {
+    #[tokio::test]
+    async fn process_string() {
         let input = "hello world";
         let test = TestResponse::new(StatusCode::OK, json!(input)).into_inner();
-        let response = Response::<String>::try_from(test).unwrap();
+        let response = Response::<String>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::OK);
         assert_eq!(response.body, input);
 
         let input = "hello \nmy\" world";
         let test = TestResponse::new(StatusCode::ACCEPTED, json!(input)).into_inner();
-        let response = Response::<String>::try_from(test).unwrap();
+        let response = Response::<String>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::ACCEPTED);
         assert_eq!(response.body, input);
 
         let input = "hello \nmy\" world";
         let test = TestResponse::raw(StatusCode::ACCEPTED, input.to_string()).into_inner();
-        let response = Response::<String>::try_from(test).unwrap();
+        let response = Response::<String>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::ACCEPTED);
         assert_eq!(response.body, input);
     }
 
-    #[test]
-    fn process_numeric() {
+    #[tokio::test]
+    async fn process_numeric() {
         let input = 1234;
         let test = TestResponse::new(StatusCode::ACCEPTED, json!(input)).into_inner();
-        let response = Response::<u16>::try_from(test).unwrap();
+        let response = Response::<u16>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::ACCEPTED);
         assert_eq!(response.body, input);
 
         let input = vec![1, 2, 3, 4];
         let test = TestResponse::new(StatusCode::ACCEPTED, json!(input)).into_inner();
-        let response = Response::<Vec<u8>>::try_from(test).unwrap();
+        let response = Response::<Vec<u8>>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::ACCEPTED);
         assert_eq!(response.body, input);
     }
 
-    #[test]
-    fn process_valid_body() {
+    #[tokio::test]
+    async fn process_valid_body() {
         let input = json!({ "foo": 12, "bar": "mybar" });
         let test = TestResponse::new(StatusCode::CREATED, input).into_inner();
-        let response = Response::<TestData>::try_from(test).unwrap();
+        let response = Response::<TestData>::decode(test).await.unwrap();
         assert_eq!(response.status, StatusCode::CREATED);
         assert_eq!(
             response.body,
@@ -192,19 +204,19 @@ mod test {
         );
     }
 
-    #[test]
-    fn process_invalid_body() {
+    #[tokio::test]
+    async fn process_invalid_body() {
         let input = json!({ "foo": "12", "bar": "mybar" });
         let test = TestResponse::new(StatusCode::CREATED, input).into_inner();
-        let response = Response::<TestData>::try_from(test).unwrap_err();
+        let response = Response::<TestData>::decode(test).await.unwrap_err();
         assert_eq!(response.status, StatusCode::BAD_REQUEST);
     }
 
-    #[test]
-    fn process_error() {
+    #[tokio::test]
+    async fn process_error() {
         let input = "invalid";
         let test = TestResponse::raw(StatusCode::IM_A_TEAPOT, input.to_string()).into_inner();
-        let response = Response::<u64>::try_from(test).unwrap_err();
+        let response = Response::<u64>::decode(test).await.unwrap_err();
         assert_eq!(response.status, StatusCode::IM_A_TEAPOT);
         assert_eq!(
             response.body,

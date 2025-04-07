@@ -25,6 +25,6 @@ impl Request for RequestBuilder {
             headers: HashMap::new(),
             body: GenericError::new(e.to_string()),
         })?;
-        response.try_into()
+        Response::decode(response).await
     }
 }
