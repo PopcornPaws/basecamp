@@ -15,16 +15,39 @@ pub trait Request {
     /// # Errors
     ///
     /// Throws an error if the request fails to send or if the response cannot be processed.
-    async fn dispatch<R: DeserializeOwned>(self) -> ApiResult<R>;
+    async fn dispatch(self) -> ApiResult<Vec<u8>>;
+    async fn dispatch_empty(self) -> ApiResult<()>;
+    async fn dispatch_text(self) -> ApiResult<String>;
+    async fn dispatch_json<R: DeserializeOwned>(self) -> ApiResult<R>;
 }
 
 impl Request for RequestBuilder {
-    async fn dispatch<R: DeserializeOwned>(self) -> ApiResult<R> {
+    async fn dispatch(self) -> ApiResult<Vec<u8>> {
         let response = self.send().await.map_err(|e| Response {
             status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
             headers: HashMap::new(),
             body: GenericError::new(e.to_string()),
         })?;
-        Response::decode(response).await
+        let status = response.status();
+        let headers = response.headers().clone();
+        let bytes = response.bytes().await.map_err(|e| Response {
+            status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
+            headers: HashMap::new(),
+            body: GenericError::new(e.to_string()),
+        })?;
+
+        Response::<Vec<u8>>::new(status, headers, bytes.to_vec())
+    }
+
+    async fn dispatch_empty(self) -> ApiResult<()> {
+        Ok(self.dispatch().await?.empty())
+    }
+
+    async fn dispatch_text(self) -> ApiResult<String> {
+        Ok(self.dispatch().await?.text())
+    }
+
+    async fn dispatch_json<R: DeserializeOwned>(self) -> ApiResult<R> {
+        self.dispatch().await?.json()
     }
 }
