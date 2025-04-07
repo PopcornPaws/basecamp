@@ -1,5 +1,5 @@
-use reqwest::header::HeaderMap;
 use reqwest::StatusCode;
+use reqwest::header::HeaderMap;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -76,6 +76,15 @@ impl Response<Vec<u8>> {
     }
 
     #[must_use]
+    pub fn empty(self) -> Response<()> {
+        Response {
+            status: self.status,
+            headers: self.headers,
+            body: (),
+        }
+    }
+
+    #[must_use]
     pub fn text(self) -> Response<String> {
         Response {
             status: self.status,
@@ -106,7 +115,7 @@ impl Response<Vec<u8>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use serde_json::Value;
+    use serde_json::json;
 
     #[derive(Deserialize, Debug, PartialEq)]
     struct TestData {
@@ -116,87 +125,120 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::unit_cmp)]
     fn process_empty() {
         let status = StatusCode::OK;
         let mut header_map = HeaderMap::new();
         header_map.insert("foo", "bar".parse().unwrap());
 
         let response = Response::new(status, header_map, vec![]).unwrap();
-        assert_eq!(response.status, StatusCode::OK);
+        assert_eq!(response.status, status);
         assert_eq!(response.headers.get("foo").unwrap(), "bar");
+        assert!(response.body.is_empty());
+
+        let response = response.empty();
+        assert_eq!(response.status, status);
+        assert_eq!(response.headers.get("foo").unwrap(), "bar");
+        assert_eq!(response.body, ());
     }
 
-        #[test]
-        async fn process_string() {
-            let input = "hello world";
-            let test = TestResponse::new(StatusCode::OK, json!(input)).into_inner();
-            let response = Response::<String>::decode(test).await.unwrap();
-            assert_eq!(response.status, StatusCode::OK);
-            assert_eq!(response.body, input);
+    #[test]
+    fn process_string() {
+        let input = "hello world";
+        let status = StatusCode::OK;
+        let header_map = HeaderMap::new();
 
-            let input = "hello \nmy\" world";
-            let test = TestResponse::new(StatusCode::ACCEPTED, json!(input)).into_inner();
-            let response = Response::<String>::decode(test).await.unwrap();
-            assert_eq!(response.status, StatusCode::ACCEPTED);
-            assert_eq!(response.body, input);
+        let response = Response::new(status, header_map.clone(), input.as_bytes().to_vec())
+            .unwrap()
+            .text();
+        assert_eq!(response.status, status);
+        assert_eq!(response.body, input);
 
-            let input = "hello \nmy\" world";
-            let test = TestResponse::raw(StatusCode::ACCEPTED, input.to_string()).into_inner();
-            let response = Response::<String>::decode(test).await.unwrap();
-            assert_eq!(response.status, StatusCode::ACCEPTED);
-            assert_eq!(response.body, input);
-        }
+        let input = "hello \nmy\" world";
+        let status = StatusCode::ACCEPTED;
+        let response = Response::new(status, header_map.clone(), input.as_bytes().to_vec())
+            .unwrap()
+            .text();
+        assert_eq!(response.status, status);
+        assert_eq!(response.body, input);
 
-        /*
-        #[tokio::test]
-        async fn process_numeric() {
-            let input = 1234;
-            let test = TestResponse::new(StatusCode::ACCEPTED, json!(input)).into_inner();
-            let response = Response::<u16>::decode(test).await.unwrap();
-            assert_eq!(response.status, StatusCode::ACCEPTED);
-            assert_eq!(response.body, input);
+        let input = "hello \nmy\" world";
+        let input_json = json!("hello \nmy\" world").to_string();
+        let response = Response::new(status, header_map, input_json.as_bytes().to_vec())
+            .unwrap()
+            .json::<String>()
+            .unwrap();
+        assert_eq!(response.status, StatusCode::ACCEPTED);
+        assert_eq!(response.body, input);
+    }
 
-            let input = vec![1, 2, 3, 4];
-            let test = TestResponse::new(StatusCode::ACCEPTED, json!(input)).into_inner();
-            let response = Response::<Vec<u8>>::decode(test).await.unwrap();
-            assert_eq!(response.status, StatusCode::ACCEPTED);
-            assert_eq!(response.body, input);
-        }
+    #[test]
+    fn process_numeric() {
+        let status = StatusCode::NO_CONTENT;
+        let header_map = HeaderMap::new();
 
-        #[tokio::test]
-        async fn process_valid_body() {
-            let input = json!({ "foo": 12, "bar": "mybar" });
-            let test = TestResponse::new(StatusCode::CREATED, input).into_inner();
-            let response = Response::<TestData>::decode(test).await.unwrap();
-            assert_eq!(response.status, StatusCode::CREATED);
-            assert_eq!(
-                response.body,
-                TestData {
-                    foo: 12,
-                    bar: "mybar".to_string(),
-                    baz: None
-                }
-            );
-        }
+        let input = 1234;
+        let input_json = json!(input).to_string();
+        let response = Response::new(status, header_map.clone(), input_json.as_bytes().to_vec())
+            .unwrap()
+            .json::<u16>()
+            .unwrap();
+        assert_eq!(response.status, status);
+        assert_eq!(response.body, input);
 
-        #[tokio::test]
-        async fn process_invalid_body() {
-            let input = json!({ "foo": "12", "bar": "mybar" });
-            let test = TestResponse::new(StatusCode::CREATED, input).into_inner();
-            let response = Response::<TestData>::decode(test).await.unwrap_err();
-            assert_eq!(response.status, StatusCode::BAD_REQUEST);
-        }
+        let input = vec![1, 2, 3, 4];
+        let input_json = json!(input).to_string();
+        let response = Response::new(status, header_map, input_json.as_bytes().to_vec())
+            .unwrap()
+            .json::<Vec<u64>>()
+            .unwrap();
+        assert_eq!(response.status, status);
+        assert_eq!(response.body, input);
+    }
 
-        #[tokio::test]
-        async fn process_error() {
-            let input = "invalid";
-            let test = TestResponse::raw(StatusCode::IM_A_TEAPOT, input.to_string()).into_inner();
-            let response = Response::<u64>::decode(test).await.unwrap_err();
-            assert_eq!(response.status, StatusCode::IM_A_TEAPOT);
-            assert_eq!(
-                response.body,
-                GenericError::new("status is error".to_string()).with_message(input.to_string())
-            );
-        }
-    */
+    #[test]
+    fn process_valid_body() {
+        let status = StatusCode::NO_CONTENT;
+        let header_map = HeaderMap::new();
+        let input_json = json!({ "foo": 12, "bar": "mybar" }).to_string();
+        let response = Response::new(status, header_map, input_json.as_bytes().to_vec())
+            .unwrap()
+            .json::<TestData>()
+            .unwrap();
+        assert_eq!(response.status, status);
+        assert_eq!(
+            response.body,
+            TestData {
+                foo: 12,
+                bar: "mybar".to_string(),
+                baz: None
+            }
+        );
+    }
+
+    #[test]
+    fn process_invalid_body() {
+        let status = StatusCode::OK;
+        let header_map = HeaderMap::new();
+        let input_json = json!({ "foo": "12", "bar": "mybar" }).to_string();
+        let response = Response::new(status, header_map, input_json.as_bytes().to_vec())
+            .unwrap()
+            .json::<TestData>()
+            .unwrap_err();
+        assert_eq!(response.status, StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn process_error() {
+        let status = StatusCode::IM_A_TEAPOT;
+        let header_map = HeaderMap::new();
+
+        let input = "invalid";
+        let response = Response::new(status, header_map, input.as_bytes().to_vec()).unwrap_err();
+        assert_eq!(response.status, status);
+        assert_eq!(
+            response.body,
+            GenericError::new("status is error".to_string()).with_message(input.to_string())
+        );
+    }
 }

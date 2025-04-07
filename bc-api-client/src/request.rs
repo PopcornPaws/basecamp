@@ -1,5 +1,6 @@
 use crate::response::{ApiResult, GenericError, Response};
 use reqwest::{RequestBuilder, StatusCode};
+use serde::de::DeserializeOwned;
 
 use std::collections::HashMap;
 
@@ -15,6 +16,9 @@ pub trait Request {
     ///
     /// Throws an error if the request fails to send or if the response cannot be processed.
     async fn dispatch(self) -> ApiResult<Vec<u8>>;
+    async fn dispatch_empty(self) -> ApiResult<()>;
+    async fn dispatch_text(self) -> ApiResult<String>;
+    async fn dispatch_json<R: DeserializeOwned>(self) -> ApiResult<R>;
 }
 
 impl Request for RequestBuilder {
@@ -33,5 +37,17 @@ impl Request for RequestBuilder {
         })?;
 
         Response::<Vec<u8>>::new(status, headers, bytes.to_vec())
+    }
+
+    async fn dispatch_empty(self) -> ApiResult<()> {
+        Ok(self.dispatch().await?.empty())
+    }
+
+    async fn dispatch_text(self) -> ApiResult<String> {
+        Ok(self.dispatch().await?.text())
+    }
+
+    async fn dispatch_json<R: DeserializeOwned>(self) -> ApiResult<R> {
+        self.dispatch().await?.json()
     }
 }
