@@ -55,7 +55,7 @@ impl<R: DeserializeOwned> TryFrom<reqwest::Response> for Response<R> {
             futures::executor::block_on(async move { response.text().await.unwrap_or_default() });
 
         if message.is_empty() {
-            message = "null".to_string();
+            message.push_str("null");
         }
 
         // check if returned status is error
