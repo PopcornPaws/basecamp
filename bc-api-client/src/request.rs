@@ -1,6 +1,8 @@
-use crate::response::{Response, Result};
+use crate::response::{ApiResult, GenericError, Response};
 use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
+
+use std::collections::HashMap;
 
 #[allow(async_fn_in_trait)]
 pub trait Request {
@@ -13,20 +15,16 @@ pub trait Request {
     /// # Errors
     ///
     /// Throws an error if the request fails to send or if the response cannot be processed.
-    async fn dispatch<R: DeserializeOwned>(self) -> Result<R>;
+    async fn dispatch<R: DeserializeOwned>(self) -> ApiResult<R>;
 }
 
 impl Request for RequestBuilder {
-    async fn dispatch<R: DeserializeOwned>(self) -> Result<R> {
+    async fn dispatch<R: DeserializeOwned>(self) -> ApiResult<R> {
         let response = self.send().await.map_err(|e| Response {
             status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
-            body: e.to_string(),
+            headers: HashMap::new(),
+            body: GenericError::new(e.to_string()),
         })?;
-        let status = response.status();
-        let message = response.text().await.map_err(|e| Response {
-            status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
-            body: e.to_string(),
-        })?;
-        (status, message).try_into()
+        response.try_into()
     }
 }
