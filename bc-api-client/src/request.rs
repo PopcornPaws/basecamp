@@ -1,4 +1,4 @@
-use crate::response::{GenericError, Response, ApiResult};
+use crate::response::{ApiResult, GenericError, Response};
 use reqwest::{RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 

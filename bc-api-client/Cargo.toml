@@ -8,3 +8,6 @@ reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 futures = { version = "0.3", features = ["executor"] }
 serde_json = { version = "1" }
+
+[dev-dependencies]
+http = { version = "1.3" }
