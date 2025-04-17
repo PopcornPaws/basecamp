@@ -1,11 +1,9 @@
 mod basic;
 mod bearer;
 mod headers;
-mod login;
 
 pub use basic::Basic;
 pub use bearer::Bearer;
-pub use login::Login;
 
 use reqwest::RequestBuilder;
 
