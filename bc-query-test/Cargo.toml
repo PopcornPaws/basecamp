@@ -1,0 +1,8 @@
+[package]
+name = "bc-query-test"
+version = "0.1.0"
+edition = "2024"
+
+[dev-dependencies]
+bc-query = { path = "../bc-query" }
+

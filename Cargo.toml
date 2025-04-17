@@ -4,5 +4,7 @@ members = [
     "bc-api-client",
     "bc-database",
     "bc-hash",
+    "bc-query",
+    "bc-query-test",
     "bc-utils",
 ]
