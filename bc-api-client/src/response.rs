@@ -12,34 +12,17 @@ pub struct Response<R> {
     pub body: R,
 }
 
-impl Default for Response<Vec<u8>> {
+impl<R: Default> Default for Response<R> {
     fn default() -> Self {
         Self {
             status: StatusCode::OK,
             headers: HashMap::new(),
-            body: Vec::new(),
+            body: R::default(),
         }
     }
 }
 
 impl Response<Vec<u8>> {
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    #[must_use]
-    pub fn with_status(mut self, status: StatusCode) -> Self {
-        self.status = status;
-        self
-    }
-
-    #[must_use]
-    pub fn with_headers(mut self, headers: HashMap<String, String>) -> Self {
-        self.headers = headers;
-        self
-    }
-
     #[must_use]
     pub fn empty(self) -> Response<()> {
         self.with_body(())
@@ -49,22 +32,6 @@ impl Response<Vec<u8>> {
     pub fn text(self) -> Response<String> {
         let body = self.body_to_utf8();
         self.with_body(body)
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    #[must_use]
-    pub fn error<E: ToString>(self, status: StatusCode, error: E) -> Response<GenericError> {
-        let body = self.body_to_utf8();
-        let response = self
-            .with_status(status)
-            .with_body(GenericError::new(error.to_string()).with_message(body));
-        debug_assert!(response.is_error());
-        response
-    }
-
-    #[must_use]
-    pub fn bad_request<E: ToString>(self, error: E) -> Response<GenericError> {
-        self.error(StatusCode::BAD_REQUEST, error)
     }
 
     #[must_use]
@@ -79,12 +46,30 @@ impl Response<Vec<u8>> {
     pub fn json<R: DeserializeOwned>(self) -> ApiResult<R> {
         match serde_json::from_slice(&self.body) {
             Ok(body) => Ok(self.with_body(body)),
-            Err(error) => Err(self.bad_request(error.to_string())),
+            Err(error) => Err(self.text().bad_request(error.to_string())),
         }
     }
 }
 
+impl Response<()> {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<R> Response<R> {
+    #[must_use]
+    pub fn with_status(mut self, status: StatusCode) -> Self {
+        self.status = status;
+        self
+    }
+
+    #[must_use]
+    pub fn with_headers(mut self, headers: HashMap<String, String>) -> Self {
+        self.headers = headers;
+        self
+    }
     #[must_use]
     pub fn with_body<B>(self, body: B) -> Response<B> {
         Response {
@@ -96,6 +81,24 @@ impl<R> Response<R> {
 
     pub fn is_error(&self) -> bool {
         self.status.is_client_error() || self.status.is_server_error()
+    }
+}
+
+impl<R: std::fmt::Debug> Response<R> {
+    #[must_use]
+    pub fn bad_request<E: ToString>(self, error: E) -> Response<GenericError> {
+        self.error(StatusCode::BAD_REQUEST, error)
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    #[must_use]
+    pub fn error<E: ToString>(self, status: StatusCode, error: E) -> Response<GenericError> {
+        let message = format!("{:#?}", self.body);
+        let response = self
+            .with_status(status)
+            .with_body(GenericError::new(error.to_string()).with_message(message));
+        debug_assert!(response.is_error());
+        response
     }
 }
 
@@ -120,11 +123,6 @@ mod test {
         headers.insert("foo".to_string(), "bar".to_string());
 
         let response = Response::new().with_headers(headers);
-        assert_eq!(response.status, status);
-        assert_eq!(response.headers.get("foo").unwrap(), "bar");
-        assert!(response.body.is_empty());
-
-        let response = response.empty();
         assert_eq!(response.status, status);
         assert_eq!(response.headers.get("foo").unwrap(), "bar");
         assert_eq!(response.body, ());
@@ -213,13 +211,10 @@ mod test {
     fn process_error() {
         let status = StatusCode::IM_A_TEAPOT;
 
-        let input = "invalid";
-        let body = format!("request failed with status {status}");
-        let response = Response::new()
-            .with_body(body.as_bytes().to_vec())
-            .error(status, input);
+        let error = format!("request failed with status {status}");
+        let response = Response::new().error(status, &error);
         assert!(response.is_error());
         assert_eq!(response.status, status);
-        assert_eq!(response.body, GenericError::new(input).with_message(body));
+        assert_eq!(response.body, GenericError::new(error).with_message("()"));
     }
 }
