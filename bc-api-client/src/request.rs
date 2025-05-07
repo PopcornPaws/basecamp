@@ -1,8 +1,7 @@
-use crate::response::{ApiResult, GenericError, Response};
-use reqwest::{RequestBuilder, StatusCode};
+use crate::ApiResult;
+use crate::response::Response;
+use reqwest::RequestBuilder;
 use serde::de::DeserializeOwned;
-
-use std::collections::HashMap;
 
 #[allow(async_fn_in_trait)]
 pub trait Request {
@@ -23,20 +22,34 @@ pub trait Request {
 
 impl Request for RequestBuilder {
     async fn dispatch(self) -> ApiResult<Vec<u8>> {
-        let response = self.send().await.map_err(|e| Response {
-            status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
-            headers: HashMap::new(),
-            body: GenericError::new(e.to_string()),
-        })?;
+        let response = self
+            .send()
+            .await
+            .map_err(|e| Response::new().bad_request(e.to_string()))?;
         let status = response.status();
-        let headers = response.headers().clone();
-        let bytes = response.bytes().await.map_err(|e| Response {
-            status: e.status().unwrap_or(StatusCode::BAD_REQUEST),
-            headers: HashMap::new(),
-            body: GenericError::new(e.to_string()),
-        })?;
+        let headers = response
+            .headers()
+            .iter()
+            .map(|(key, value)| {
+                (
+                    key.to_string(),
+                    value.to_str().unwrap_or_default().to_string(),
+                )
+            })
+            .collect();
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| Response::new().bad_request(e.to_string()))?;
 
-        Response::<Vec<u8>>::new(status, headers, bytes.to_vec())
+        let response = Response::new()
+            .with_headers(headers)
+            .with_body(bytes.to_vec());
+        if status.is_client_error() || status.is_server_error() {
+            Err(response.error(status, format!("request failed with {status}")))
+        } else {
+            Ok(response.with_status(status))
+        }
     }
 
     async fn dispatch_empty(self) -> ApiResult<()> {

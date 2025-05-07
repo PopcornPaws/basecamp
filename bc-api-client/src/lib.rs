@@ -1,10 +1,11 @@
 #![deny(clippy::all)]
 #![deny(clippy::dbg_macro)]
-#![deny(clippy::pedantic)]
+#![warn(clippy::pedantic)]
 #![warn(unused_crate_dependencies)]
 
 /// Various authentication method implementations for interacting with APIs.
 pub mod auth;
+pub mod error;
 pub mod request;
 pub mod response;
 
@@ -15,6 +16,8 @@ use reqwest::{Client, Method, RequestBuilder};
 
 use std::marker::PhantomData;
 use std::sync::Arc;
+
+pub type ApiResult<T> = Result<response::Response<T>, response::Response<error::GenericError>>;
 
 #[must_use]
 pub struct ApiClientBuilder<'a> {
