@@ -11,9 +11,9 @@ pub trait Request {
     ///
     /// Throws an error if the request fails to complete or the body cannot be decoded.
     async fn request(self) -> ApiResult<Vec<u8>>;
-    async fn empty(self) -> ApiResult<()>;
-    async fn text(self) -> ApiResult<String>;
-    async fn json<R: DeserializeOwned>(self) -> ApiResult<R>;
+    async fn request_empty(self) -> ApiResult<()>;
+    async fn request_text(self) -> ApiResult<String>;
+    async fn request_json<R: DeserializeOwned>(self) -> ApiResult<R>;
 }
 
 impl Request for RequestBuilder {
@@ -38,15 +38,15 @@ impl Request for RequestBuilder {
             .with_body(bytes.to_vec()))
     }
 
-    async fn empty(self) -> ApiResult<()> {
+    async fn request_empty(self) -> ApiResult<()> {
         Ok(self.request().await?.into_empty())
     }
 
-    async fn text(self) -> ApiResult<String> {
+    async fn request_text(self) -> ApiResult<String> {
         Ok(self.request().await?.into_text())
     }
 
-    async fn json<R: DeserializeOwned>(self) -> ApiResult<R> {
+    async fn request_json<R: DeserializeOwned>(self) -> ApiResult<R> {
         self.request().await?.try_into_json()
     }
 }
