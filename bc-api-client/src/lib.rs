@@ -17,7 +17,7 @@ use reqwest::{Client, Method, RequestBuilder};
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-pub type ApiResult<T> = Result<response::Response<T>, response::Response<error::GenericError>>;
+pub type ApiResult<T> = Result<response::Response<T>, error::Error>;
 
 #[must_use]
 pub struct ApiClientBuilder<'a> {

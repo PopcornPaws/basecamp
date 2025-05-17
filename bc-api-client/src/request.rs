@@ -5,27 +5,20 @@ use serde::de::DeserializeOwned;
 
 #[allow(async_fn_in_trait)]
 pub trait Request {
-    /// Dispatches an API call and attempts to deserialize the response payload to a generic type
-    /// `R` that is specified at compile time.
-    ///
-    /// Returns an error if the http request fails or the returned response body cannot be
-    /// deserialized into the expected type.
+    /// Dispatches an API call and attempts to decode the response body into a byte vector.
     ///
     /// # Errors
     ///
-    /// Throws an error if the request fails to send or if the response cannot be processed.
-    async fn dispatch(self) -> ApiResult<Vec<u8>>;
-    async fn dispatch_empty(self) -> ApiResult<()>;
-    async fn dispatch_text(self) -> ApiResult<String>;
-    async fn dispatch_json<R: DeserializeOwned>(self) -> ApiResult<R>;
+    /// Throws an error if the request fails to complete or the body cannot be decoded.
+    async fn request(self) -> ApiResult<Vec<u8>>;
+    async fn empty(self) -> ApiResult<()>;
+    async fn text(self) -> ApiResult<String>;
+    async fn json<R: DeserializeOwned>(self) -> ApiResult<R>;
 }
 
 impl Request for RequestBuilder {
-    async fn dispatch(self) -> ApiResult<Vec<u8>> {
-        let response = self
-            .send()
-            .await
-            .map_err(|e| Response::new().bad_request(e.to_string()))?;
+    async fn request(self) -> ApiResult<Vec<u8>> {
+        let response = self.send().await?;
         let status = response.status();
         let headers = response
             .headers()
@@ -37,30 +30,23 @@ impl Request for RequestBuilder {
                 )
             })
             .collect();
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| Response::new().bad_request(e.to_string()))?;
+        let bytes = response.bytes().await?;
 
-        let response = Response::new()
+        Ok(Response::empty()
+            .with_status(status)
             .with_headers(headers)
-            .with_body(bytes.to_vec());
-        if status.is_client_error() || status.is_server_error() {
-            Err(response.error(status, format!("request failed with {status}")))
-        } else {
-            Ok(response.with_status(status))
-        }
+            .with_body(bytes.to_vec()))
     }
 
-    async fn dispatch_empty(self) -> ApiResult<()> {
-        Ok(self.dispatch().await?.empty())
+    async fn empty(self) -> ApiResult<()> {
+        Ok(self.request().await?.into_empty())
     }
 
-    async fn dispatch_text(self) -> ApiResult<String> {
-        Ok(self.dispatch().await?.text())
+    async fn text(self) -> ApiResult<String> {
+        Ok(self.request().await?.into_text())
     }
 
-    async fn dispatch_json<R: DeserializeOwned>(self) -> ApiResult<R> {
-        self.dispatch().await?.json()
+    async fn json<R: DeserializeOwned>(self) -> ApiResult<R> {
+        self.request().await?.try_into_json()
     }
 }
