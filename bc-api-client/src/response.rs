@@ -43,8 +43,12 @@ impl Response<Vec<u8>> {
     ///
     /// Returns an error if the response status is error or if deserialization fails.
     pub fn try_into_json<R: DeserializeOwned>(self) -> ApiResult<R> {
-        let body = serde_json::from_slice(&self.body)?;
-        Ok(self.with_body(body))
+        match serde_json::from_slice(&self.body) {
+            Ok(body) => Ok(self.with_body(body)),
+            Err(err) => Err(self
+                .with_status(StatusCode::BAD_REQUEST)
+                .with_body(err.to_string())),
+        }
     }
 }
 

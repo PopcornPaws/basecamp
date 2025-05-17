@@ -1,6 +1,7 @@
 use crate::ApiResult;
 use crate::response::Response;
 use reqwest::RequestBuilder;
+use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 
 #[allow(async_fn_in_trait)]
@@ -18,7 +19,11 @@ pub trait Request {
 
 impl Request for RequestBuilder {
     async fn request(self) -> ApiResult<Vec<u8>> {
-        let response = self.send().await?;
+        let response = self.send().await.map_err(|e| {
+            Response::empty()
+                .with_status(e.status().unwrap_or(StatusCode::BAD_REQUEST))
+                .with_body(e.to_string())
+        })?;
         let status = response.status();
         let headers = response
             .headers()
@@ -30,12 +35,22 @@ impl Request for RequestBuilder {
                 )
             })
             .collect();
-        let bytes = response.bytes().await?;
+        let bytes = response.bytes().await.map_err(|e| {
+            Response::empty()
+                .with_status(e.status().unwrap_or(StatusCode::BAD_REQUEST))
+                .with_body(e.to_string())
+        })?;
 
-        Ok(Response::empty()
+        let response = Response::empty()
             .with_status(status)
             .with_headers(headers)
-            .with_body(bytes.to_vec()))
+            .with_body(bytes.to_vec());
+
+        if response.is_error() {
+            Err(response.into_text())
+        } else {
+            Ok(response)
+        }
     }
 
     async fn request_empty(self) -> ApiResult<()> {
