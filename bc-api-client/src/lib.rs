@@ -34,6 +34,11 @@ impl<'a> ApiClientBuilder<'a> {
         }
     }
 
+    pub fn with_client(mut self, client: Client) -> Self {
+        self.client = client;
+        self
+    }
+
     pub fn with_auth<A: Auth + Send + Sync + 'static>(self, auth: A) -> Self {
         Self {
             client: self.client,
