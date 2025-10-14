@@ -61,10 +61,10 @@ impl Options {
                 opts.connect = opts.connect.password(&password);
             }
         }
-        if let Ok(s) = dotenvy::var("DB_REQUIRE_SSL") {
-            if s.parse().unwrap() {
-                opts.connect = opts.connect.ssl_mode(PgSslMode::Require);
-            }
+        if let Ok(s) = dotenvy::var("DB_REQUIRE_SSL")
+            && s.parse().unwrap()
+        {
+            opts.connect = opts.connect.ssl_mode(PgSslMode::Require);
         }
         if let Ok(log_level) = dotenvy::var("DB_LOG_LEVEL") {
             opts.connect = opts.connect.log_statements(log_level.parse().unwrap());

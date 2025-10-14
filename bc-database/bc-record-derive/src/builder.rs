@@ -92,6 +92,7 @@ impl Builder {
                     #(#push_fields)*
                 }
 
+                #[allow(clippy::needless_for_each)]
                 pub fn extend(&mut self, records: Vec<#struct_type>) {
                     records.into_iter().for_each(|record| self.push(record));
                 }
