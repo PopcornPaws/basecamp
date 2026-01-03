@@ -7,5 +7,6 @@ edition = "2024"
 bc-utils-derive = { path = "./bc-utils-derive" }
 
 [dev-dependencies]
+bc-batch = { path = "../bc-batch" }
 serde = { version = "1" }
 serde_json = { version = "1" }

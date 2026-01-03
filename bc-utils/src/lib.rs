@@ -142,4 +142,19 @@ mod test {
             assert_eq!(serde_json::to_string(&Bar).unwrap(), "\"bar\"");
         }
     }
+
+    mod batch_import {
+        use bc_batch::Batch;
+
+        #[derive(Batch)]
+        struct Foo {
+            asd: u32,
+        }
+
+        #[test]
+        fn works() {
+            let batch = FooBatch::from(vec![]);
+            assert!(batch.asd.is_empty());
+        }
+    }
 }

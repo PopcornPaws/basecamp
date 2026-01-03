@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "bc-api-client",
+    "bc-batch",
     "bc-database",
     "bc-hash",
     "bc-query",
