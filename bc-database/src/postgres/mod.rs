@@ -1,10 +1,5 @@
 mod options;
-#[cfg(feature = "record")]
-mod record;
-
 pub use options::Options;
-#[cfg(feature = "record")]
-pub use record::Record;
 
 use sqlx::migrate::Migrator;
 use sqlx::{Error as SqlxError, PgPool};
